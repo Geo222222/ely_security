@@ -9,7 +9,10 @@ This directory is the canonical architecture record for Ely Security.
 3. [System Architecture](architecture/system-architecture.md)
 4. [Sovereignty Program](architecture/sovereignty-program.md)
 5. [Technology Stack](architecture/technology-stack.md)
-6. [Architecture Roadmap](architecture/architecture-roadmap.md)
+6. [Core Contracts](architecture/core-contracts.md)
+7. [Architecture Roadmap](architecture/architecture-roadmap.md)
+8. [Architecture Review — 2026-09-21](reviews/architecture-review-2026-09-21.md)
+9. [Phase 1 — Give Ely Eyes](implementation/phase-1-foundation.md)
 
 ## Canonical reality/data plane
 
@@ -51,7 +54,7 @@ This directory is the canonical architecture record for Ely Security.
 - [Page Specifications](product/page-specifications.md)
 - [Operator Workflows](product/operator-workflows.md)
 
-## Research/mining
+## Research / mining
 
 - [Research Methodology](research/methodology.md)
 - [Security Stack Genealogy](research/security-stack-genealogy.md)
@@ -63,38 +66,60 @@ This directory is the canonical architecture record for Ely Security.
   - [Arkime](research/projects/arkime.md)
   - [Zeek](research/projects/zeek.md)
   - [Suricata](research/projects/suricata.md)
-  - [OpenCode/Elyandra](research/projects/opencode-elyandra.md)
+  - [OpenCode / Elyandra](research/projects/opencode-elyandra.md)
   - [CAI](research/projects/cai.md)
 
 ## Architecture decisions
 
-ADRs are under [decisions/](decisions/).
+ADRs live under [decisions/](decisions/).
 
-Current accepted direction includes:
-- local-first control plane;
-- upstream sensor composition rather than Security Onion foundation;
-- PostgreSQL authoritative state/graph;
-- NATS JetStream event backbone;
-- OpenSearch optional projection;
-- Go authority services;
-- external policy boundary;
-- isolated assessment workers;
-- Plays rather than scripts;
-- Sigma.js initial Universe renderer.
+Accepted direction:
+
+- ADR-0001 — local-first control plane;
+- ADR-0002 — Security Onion substrate concept **superseded** by ADR-0009 after deeper research;
+- ADR-0003 — agent permissions are not enforcement;
+- ADR-0004 — Plays over scripts;
+- ADR-0005 — PostgreSQL authoritative state/graph;
+- ADR-0006 — NATS JetStream event backbone;
+- ADR-0007 — OpenSearch is optional/rebuildable;
+- ADR-0008 — Go authority services;
+- ADR-0009 — native upstream sensor stack;
+- ADR-0010 — isolated active-assessment worker;
+- ADR-0011 — Sigma.js initial Universe renderer.
+
+## What “architecture complete” means here
+
+Architecture complete does **not** mean implementation or production qualification is complete.
+
+It means the engineer is not expected to invent:
+
+- who owns canonical state;
+- which services exist;
+- where trust boundaries sit;
+- how evidence/provenance work;
+- how identity is resolved;
+- how policy/approval works;
+- how tools execute;
+- which technologies implement V1;
+- how upstream dependencies are isolated;
+- what pages/workflows the product exposes.
+
+Remaining unknowns are empirical qualification items such as actual events/sec, hardware sizing, packet-retention duration, wireless-driver qualification, and provider performance.
 
 ## Document lifecycle
 
 `Draft → Review → Accepted → Superseded`.
 
-“Accepted” means the architecture question is answered. Remaining unknowns must be empirical qualification items, not work handed back to implementation.
+Accepted architecture changes through explicit review/ADR, not silent implementation drift.
 
 ## Source-of-truth rules
 
 - Constitution governs invariants.
 - ADRs record why consequential choices were made.
-- Architecture docs define current intended system.
+- Architecture docs define the current intended system.
 - Product docs define operator behavior.
 - Research docs distinguish verified upstream facts from Ely decisions.
-- Code cannot silently supersede architecture; divergence requires an ADR/document update.
+- Core Contracts define the inter-module boundary engineers implement.
+- Code cannot silently supersede architecture.
 
 [← Repository README](../README.md)
