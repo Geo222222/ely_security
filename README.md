@@ -1,139 +1,155 @@
 # Ely Security
 
-> AI-native security operations environment for people and teams that need continuous visibility, evidence-backed reasoning, and governed action without operating a traditional SOC.
+> **See further. Stay ahead.**  
+> Local-first, evidence-backed, AI-operated security operations without surrendering the security boundary to the AI or to an upstream product.
 
-**Status:** Architecture foundation / pre-implementation  
-**Primary deployment:** Local-first, single-operator proving ground  
-**Target architecture:** Multi-workspace, multi-site product  
-**Agent foundation:** Elyandra (OpenCode-derived)  
-**Security principle:** The AI is an operator, never the security boundary.
+**Status:** Architecture-qualified design / pre-implementation  
+**Default V1:** Small-site local deployment  
+**Agent:** Elyandra (OpenCode-derived, outside enforcement boundary)
 
-## What Ely Security is
+## Mission
 
-Ely Security is a persistent security operations environment. It combines established network and endpoint telemetry with a canonical Security Graph, an evidence system, Elyandra's agentic reasoning, and governed **Plays** that can investigate, defend, or assess explicitly authorized systems.
+Ely answers:
 
-The product is designed around six questions:
-
-1. What exists in this environment?
-2. What is communicating with what?
+1. What is here?
+2. What is communicating?
 3. What changed?
 4. Why might it matter?
-5. What evidence supports that conclusion?
-6. What action is permitted and appropriate?
+5. What evidence proves or weakens that conclusion?
+6. What can we safely do?
+7. What did Ely itself do?
 
-Ely Security is not intended to replace Zeek, Suricata, Arkime, Security Onion, or other mature sensors and analysis systems. It integrates or learns from them and creates a higher-level operating experience.
+## Architecture in one view
 
-## Product surfaces
+```text
+Untrusted network / endpoints
+          │
+          ▼
+ Zeek / Suricata / Arkime? / osquery / infrastructure
+          │
+          ▼
+      Ely Collectors
+          │
+   raw evidence + normalize
+          ▼
+     NATS JetStream
+          │
+ ┌────────┼───────────┬───────────────┐
+ ▼        ▼           ▼               ▼
+Graph  Detection  Investigations  OpenSearch*
+ │        │           │
+ └────────┴── PostgreSQL ─────────────┘
+                │
+          Ely Core APIs
+          │           │
+          ▼           ▼
+    Command Center  Elyandra
+          │           │ typed tools only
+          └─────┬─────┘
+                ▼
+            Play Engine
+                ▼
+           Policy Engine
+                ▼
+        Execution Gateway
+                ▼
+      isolated Worker / Kali VM
+                ▼
+       Results + Evidence/Audit
 
-- **Command** — posture, attention, active investigations, Elyandra focus.
-- **Universe** — live temporal graph of assets, identities, connections, flows, external destinations, and findings.
-- **Assets** — canonical inventory and observed posture.
-- **Wireless** — wireless networks, access points, clients, trust zones, and wireless observations.
-- **Threats** — correlated detections and abnormal observations.
-- **Investigations** — evidence-backed cases and hypotheses.
-- **Plays** — reusable defensive and authorized security-assessment workflows.
-- **Operations** — live execution view of Elyandra and running Plays.
-- **Evidence** — immutable observations, artifacts, provenance, and retrieval.
-- **Elyandra** — operator conversation, activity ledger, memory, and reasoning outputs.
-- **Infrastructure** — sensors, Kali execution nodes, Security Onion, integrations, and health.
-- **Automations** — continuous trigger/condition/action/verification rules.
-- **Policies** — scopes, authority, approvals, and autonomy.
-- **System** — configuration, retention, updates, diagnostics, and product administration.
+* OpenSearch is optional/rebuildable, never canonical truth.
+```
 
-## Core operating modes
+## Ely-owned product layer
+
+Ely permanently owns:
+- canonical domain/identifiers;
+- temporal Security Graph;
+- asset/identity resolution;
+- evidence/provenance;
+- Findings and Investigations;
+- Plays and Automations;
+- policy/approval model;
+- execution-grant contract;
+- audit semantics;
+- APIs and product UX.
+
+External projects supply replaceable primitives.
+
+## Chosen V1 stack
+
+- **Go:** Core, collectors, policy, execution gateway, node/worker agents.
+- **TypeScript/Next.js:** Command Center.
+- **TypeScript/OpenCode-derived:** Elyandra.
+- **PostgreSQL:** authoritative operational state + temporal graph.
+- **NATS JetStream:** durable event backbone.
+- **OpenSearch:** optional search/hunt projection.
+- **Zeek:** passive network observation.
+- **Suricata:** IDS/NSM, separate GPL process.
+- **Arkime:** optional indexed session/PCAP provider.
+- **osquery:** endpoint query primitive behind Ely Node Agent.
+- **Sigma.js/Graphology:** initial Universe browser renderer.
+- **Kali VM:** initial isolated ASSESS worker profile, not a control plane.
+
+Security Onion and Malcolm are architectural mines/reference integrations—not Ely's foundation.
+
+## Operating modes
 
 `OBSERVE → INVESTIGATE → DEFEND → ASSESS`
 
-Modes are authority envelopes, not themes. A requested action must be allowed by both the active mode and policy. Active assessment is restricted to explicitly authorized targets.
+Modes are authority envelopes. Visibility never implies authorization.
 
-## High-level architecture
+## Product surfaces
 
-```text
-Sensors / Endpoints / Network Infrastructure
-                 │
-                 ▼
-        Telemetry Adapters
-                 │
-                 ▼
-     Normalization + Provenance
-                 │
-        ┌────────┴────────┐
-        ▼                 ▼
- Evidence Store      Security Graph
-        │                 │
-        └────────┬────────┘
-                 ▼
-        Detection / Correlation
-                 │
-        ┌────────┴─────────┐
-        ▼                  ▼
-   Investigations       Universe
-        │
-        ▼
-      Elyandra
-        │
-        ▼
-     Play Engine
-        │
-        ▼
-    Policy Engine
-        │
-        ▼
- Execution Gateway ──► isolated Kali / response nodes
-        │
-        ▼
- Results + Evidence ──► graph / investigation / audit ledger
-```
+**Command · Universe · Assets · Wireless · Threats · Investigations · Plays · Operations · Evidence · Automations · Policies · Elyandra · Infrastructure · System**
 
-## Architectural laws
+Universe shows aggregated relationships/flows; packet-level truth remains drill-down evidence.
 
-1. Observations are evidence; interpretations are revisable.
-2. Every conclusion must be traceable to evidence.
-3. Every action must have actor, reason, target, scope, authority, result, and timestamp.
-4. Elyandra cannot bypass policy.
-5. OpenCode permissions are UX controls, not isolation.
-6. Execution occurs through constrained gateways and isolated workers.
-7. Telemetry collection continues when Elyandra is unavailable.
-8. Vendor/tool schemas never become the canonical domain model.
-9. Raw packet evidence is retained according to policy; the Universe renders flows and relationships, not packet noise.
-10. Security testing is allowed only against explicitly authorized scope.
-11. Local-first operation must remain viable without a vendor cloud.
-12. The architecture must support future multi-workspace/multi-site deployments without forcing V1 to become SaaS.
+## Constitutional rules
 
-## Repository map
+- evidence before interpretation;
+- unknown is valid;
+- AI cannot create authority;
+- policy fails closed;
+- every action has provenance;
+- history is temporal and preserved;
+- external schemas never become Ely schemas;
+- dependencies require exit strategies;
+- local defense works without an Ely cloud;
+- active assessment requires explicit owned/administered scope.
 
-```text
-apps/                 # product applications (future)
-services/             # domain services and engines (future)
-agents/               # Elyandra and execution-node adapters (future)
-packages/             # shared contracts, SDKs, UI, schemas (future)
-docs/
-  architecture/       # system and domain architecture
-  product/            # operating experience and page contracts
-  research/           # upstream project adoption research
-  decisions/          # Architecture Decision Records
-```
+Read the full [Ely Constitution](docs/constitution.md).
 
-## Architecture documentation
+## Architecture book
 
-Start at [docs/README.md](docs/README.md).
+Start with [docs/README.md](docs/README.md).
 
-Key documents:
-- [Product vision](docs/product/vision.md)
-- [System architecture](docs/architecture/system-architecture.md)
-- [Domain model](docs/architecture/domain-model.md)
-- [Security Graph](docs/architecture/security-graph.md)
-- [Play Engine](docs/architecture/play-engine.md)
-- [Product/page stack](docs/product/page-stack.md)
-- [Upstream adoption research](docs/research/upstream-adoption.md)
-- [Threat model](docs/architecture/threat-model.md)
+High-value references:
+- [System Architecture](docs/architecture/system-architecture.md)
+- [Technology Stack](docs/architecture/technology-stack.md)
+- [Deployment Architecture](docs/architecture/deployment-architecture.md)
+- [Policy Engine](docs/architecture/policy-engine.md)
+- [Execution Gateway](docs/architecture/execution-gateway.md)
+- [Elyandra Architecture](docs/architecture/elyandra-architecture.md)
+- [Page Specifications](docs/product/page-specifications.md)
+- [Security Stack Genealogy](docs/research/security-stack-genealogy.md)
+- [Dependency Register](docs/research/dependency-register.md)
 
-## Current definition of done
+## What remains unknown
 
-Architecture Foundation is complete when the vocabulary, trust boundaries, upstream adoption strategy, core domain objects, page stack, Security Graph, Play/Policy separation, and execution boundary are internally consistent and reviewable by an engineer before implementation begins.
+Architecture decisions are not being deferred to implementation.
 
-Implementation has **not** started. Open questions are intentionally documented rather than silently resolved.
+Remaining unknowns require measurement:
+- qualified hardware sizing;
+- event/packet throughput on target hardware;
+- disk-retention duration under real traffic;
+- exact wireless chipset/driver qualification;
+- performance threshold where optional OpenSearch becomes necessary.
 
-## License
+Those are resolved by architecture qualification tests, not speculation.
 
-No project license has been selected yet. Do not assume upstream licenses transfer to Ely Security. Every reused dependency or copied implementation must undergo license review and be recorded in the upstream adoption register.
+## Licensing discipline
+
+Ely will comply with upstream licenses and preserve required notices. Strong-copyleft and ELv2/open-core components are isolated deliberately. No historical/open-source code is assumed reusable without source/version/license review.
+
+No Ely project license has been selected yet; that decision should be made before external code contribution or commercial distribution.
