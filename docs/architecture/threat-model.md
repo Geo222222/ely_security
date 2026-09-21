@@ -1,91 +1,129 @@
 # Threat Model
 
-**Status:** Review  
-**Version:** 0.1
+**Status:** Accepted  
+**Version:** 1.0
 
 [← Domain Model](domain-model.md) · [Next: Security Graph →](security-graph.md)
 
 ## Protected assets
 
-- source code and intellectual property;
-- credentials, signing keys, tokens, browser sessions, and secrets;
-- development and personal endpoints;
-- security telemetry and packet evidence;
-- Ely Security control-plane authority;
-- configuration, policies, and allowlists;
+- source code/IP;
+- credentials, keys, tokens, sessions, secrets;
+- managed endpoints and networks;
+- telemetry/packet evidence;
+- control-plane authority;
+- policies/allowlists;
 - audit/evidence integrity;
-- availability of monitoring.
+- monitoring availability.
 
 ## Trust boundaries
 
-1. Upstream/campground/ISP network is untrusted.
-2. Managed local networks are monitored but not assumed uncompromised.
-3. Telemetry payloads are untrusted input.
-4. Model/provider output is untrusted until validated.
-5. OpenCode/Elyandra process is not an enforcement boundary.
-6. Execution workers/Kali are isolated from the control plane.
-7. Third-party security stacks are separate administrative/data boundaries.
-8. Browser/UI is not trusted to authorize actions by itself.
+1. Upstream/ISP/public Wi-Fi is untrusted.
+2. Managed LANs are monitored, not assumed safe.
+3. Telemetry is untrusted input.
+4. Model output is untrusted until validated.
+5. Elyandra is not an enforcement boundary.
+6. Browser/UI cannot authorize by itself.
+7. Collectors/nodes authenticate separately.
+8. Assessment/response workers are isolated and untrusted relative to Core.
+9. Third-party sensor/search systems are providers, not trust anchors.
 
 ## Threat classes
 
 ### Network adversary
-Unauthorized device, hostile upstream peer, malicious destination, spoofing, scanning, interception attempts, lateral movement.
+Unauthorized device, spoofing, interception, malicious destination, lateral movement, hostile upstream peer.
 
 ### Compromised managed endpoint
-An authorized device may become malicious while retaining valid network identity.
+Valid identity does not imply trustworthy behavior.
 
 ### Physical loss/tampering
-Portable/home/RV deployments face theft, powered-on device access, removable media, and sensor tampering.
+Portable/small-site deployments face theft, powered-on access, storage removal, and sensor tampering.
 
-### Supply-chain compromise
-Dependencies, container images, rules, model plugins, MCP servers, packages, or upstream projects may be compromised.
+### Supply chain
+Dependencies, images, rules, models, packages, MCP/tools, updates.
 
 ### Agent/tool abuse
-Prompt injection, malicious telemetry text, poisoned evidence, unsafe tool arguments, shell injection, confused-deputy behavior, excessive authority.
+Prompt injection, poisoned telemetry, shell/argument injection, confused deputy, excessive authority.
 
-### Insider/operator error
-Wrong target, overly broad scope, accidental containment, destructive Play, secret exposure.
+### Operator error
+Wrong target, broad scope, accidental containment, secret exposure.
 
-### Evidence attacks
-Log deletion, timestamp manipulation, sensor spoofing, replay, artifact substitution, provenance loss.
+### Evidence attack
+Deletion, spoofing, timestamp manipulation, replay, artifact substitution, provenance loss.
 
-## Required controls
+## Mandatory controls
 
-- explicit workspace/site/network authorization scope;
-- fail-closed policy for state-changing actions;
-- typed tool adapters; avoid model-constructed shell where a typed primitive exists;
-- execution isolation (VM/container/sandbox as appropriate);
-- short-lived grants and credentials;
-- no long-lived root SSH credential exposed to the model;
-- network egress controls for workers where practical;
-- append-only audit ledger;
-- evidence hashes and source identity;
-- secret scanning and no raw operational evidence in Git;
-- signed/verified release pipeline as the product matures;
-- dependency/SBOM/vulnerability management;
-- separation of passive observation from active assessment;
-- confirmation/approval gates based on action class;
-- sanitization/context separation for untrusted telemetry shown to models.
+- explicit workspace/site/target scope;
+- mTLS node identity;
+- one-time enrollment;
+- deterministic Policy Engine;
+- typed actions/argv process execution;
+- short-lived grants;
+- isolated assessment VM;
+- no model-held root SSH credential;
+- worker egress restriction where practical;
+- evidence hashes;
+- append-only tamper-evident audit chain;
+- encrypted production storage;
+- secrets outside prompts/logs/events;
+- signed update manifests + SBOM;
+- passive observation separated from active assessment;
+- model context separation for untrusted data.
 
-## OpenCode-specific boundary
+## Root of trust
 
-OpenCode documents that its permission system is not a sandbox. Ely Security therefore treats OpenCode permissions as operator UX and defense-in-depth only. Policy enforcement and worker isolation must exist outside the agent process.
+### Site CA
+Core owns the Site node-identity CA/private material, protected by filesystem/OS key store and TPM where available.
 
-## CAI-specific lesson
+### Enrollment
+One-time token → node-generated keypair → Core-issued certificate → token invalidated.
 
-The archived CAI project contains valuable agent/guardrail research but also documented command-injection advisories in agent tools. Ely Security will not copy its command execution boundary. We study patterns, tests, and failures; execution is reimplemented around typed actions, policy decisions, and isolation.
+### Execution signing
+Separate signing key for short-lived ExecutionGrants. Elyandra/workers never possess it.
 
-## Security testing boundary
+## Host/storage protection
 
-ASSESS mode operates only on explicit authorized target sets. Discovery of an unknown/upstream device does not create authorization to test it. Scope expansion requires an operator/policy change.
+Production Small profile requires/recommends full-disk encrypted Linux storage (for example LUKS-class protection) and secure boot/TPM where hardware supports it.
 
-## Open questions
+Ely's BlobStore/Secret Service contracts permit stronger per-object envelope encryption without schema changes.
 
-- Hardware-backed key strategy for local appliance deployments.
-- Root of trust for sensor identities.
-- Remote administration design.
-- Secure update/TUF-style strategy.
-- Evidence encryption and retention defaults.
+## Remote administration
+
+V1 Core does not require public Internet exposure.
+
+Default:
+- bind management to local/private interface;
+- HTTPS;
+- remote use through operator-controlled VPN/private overlay;
+- no unauthenticated server mode.
+
+Future OIDC federation is additive.
+
+## Update trust
+
+Signed release manifest, checksums, SBOM, pinned dependencies, offline verified bundles, backup before destructive migration.
+
+See Supply Chain & Updates.
+
+## OpenCode boundary
+
+OpenCode states its permission system is not a sandbox. Ely uses those permissions only as UX/defense-in-depth.
+
+## CAI lesson
+
+CAI's archived runtime and critical command-injection advisories reinforce typed actions and external isolation. Its mixed licensing also makes it research-only.
+
+## Security-testing boundary
+
+ASSESS requires an explicit AssessmentScope. Discovery never expands authorization.
+
+## Residual risks
+
+- privileged sensor/worker compromise can falsify its own source evidence;
+- physical compromise may defeat software controls if keys are accessible;
+- coverage gaps can hide activity;
+- model reasoning can still be wrong even when authority is constrained.
+
+Ely surfaces these limits rather than claiming perfect detection.
 
 [← Domain Model](domain-model.md) · [Next: Security Graph →](security-graph.md)
