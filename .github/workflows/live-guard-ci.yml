@@ -1,0 +1,27 @@
+name: Live Guard CI
+on:
+  push:
+    branches:
+      - implementation/live-guard-v0
+  pull_request:
+    paths:
+      - 'live_guard/**'
+      - '.github/workflows/live-guard-ci.yml'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile
+        run: python -m py_compile live_guard/ely_live_guard.py
+      - name: Unit smoke tests
+        working-directory: live_guard
+        run: python -m unittest -v test_live_guard.py
+      - name: Shell syntax
+        run: |
+          bash -n live_guard/bootstrap_ubuntu.sh
+          bash -n live_guard/run.sh
