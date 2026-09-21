@@ -1,116 +1,120 @@
 # Product Page Stack
 
-**Status:** Review  
-**Version:** 0.1
+**Status:** Accepted  
+**Version:** 1.0
 
 [← Play Engine](../architecture/play-engine.md) · [Next: Upstream Adoption →](../research/upstream-adoption.md)
 
-## Shell
+## Persistent shell
 
-One persistent application shell:
-- workspace/site selector;
+- workspace/site;
+- primary navigation;
 - global search/command palette;
-- operating mode indicator;
-- sensor/system health;
-- active operation count;
-- alert/attention indicator;
-- Elyandra drawer;
-- contextual Play launcher.
+- operating mode;
+- time/live context;
+- coverage/system health;
+- active Operation count;
+- attention indicator;
+- contextual Play launcher;
+- persistent/collapsible Elyandra operator.
 
-Selection context survives navigation where meaningful. Elyandra receives explicit UI context objects, not scraped screen text.
+Exactly one primary route is active.
+
+## Visual language
+
+Ely uses a dark operational interface:
+- near-black/deep-navy surfaces;
+- electric purple/blue accent family;
+- high-contrast neutral text;
+- semantic state colors reserved for status/severity;
+- dense but structured data layout;
+- no decorative glow that reduces legibility.
+
+Ely owns tokens/components. Radix primitives may supply accessible behavior underneath.
 
 ## Routes
 
-### /command
-Mission control. Posture, attention queue, active investigations, operations, environment health, recent changes, Elyandra briefing.
+`/command` — mission control.
 
-### /universe
-Primary live visual surface.
+`/universe` — live/replayable Security Graph.
 
-Tabs/views:
-`Live | External | Geographic | Connections | Timeline | Replay`
+`/assets` — canonical inventory/identity.
 
-Inspector tabs:
-`Overview | Connections | Processes | Services | Findings | History | Evidence`
+`/wireless` — AP/SSID/client/coverage.
 
-Visual semantics are based on state and direction; color is never the only carrier of meaning.
+`/threats` — Findings and Provider Alerts.
 
-### /assets
-Inventory, identity confidence, posture, interfaces, services, ownership, history, evidence.
+`/investigations` — evidence-backed cases.
 
-### /wireless
-Authorized wireless environment: SSIDs, APs, clients, channels/radio observations where sensors support them, trust zones, identity changes, findings.
+`/plays` — investigate/defend/assess workflows.
 
-### /threats
-Correlated detection stream. Separates source alerts from Ely findings. Filters by site, asset, confidence, severity, source, status, and time.
+`/operations` — live execution cockpit.
 
-### /investigations
-Cases with hypotheses, evidence for/against, observables, timeline, operations, determinations, notes, and closure reason.
+`/evidence` — provenance/artifacts/session/PCAP.
 
-### /plays
-`Quick Actions | Defense | Assess | Investigate | Running | History | Builder`
+`/automations` — WHEN/IF/THEN/VERIFY.
 
-Every Play preview shows target, scope, tools/primitives, expected impact, authority requirement, verification, evidence output, and rollback where applicable.
+`/policies` — authority/scope/approvals.
 
-### /operations
-Live execution cockpit. Shows concurrent Elyandra/Play/tool activity and where work is blocked/waiting.
+`/elyandra` — sessions/activity/memory/evaluations.
 
-### /evidence
-Searchable provenance layer. Supports event/log/session/PCAP/artifact references without pretending all evidence types are locally stored in the same database.
+`/infrastructure` — nodes/providers/storage/health.
 
-### /elyandra
-Conversation, activity ledger, sessions, reasoning products, memory controls, tool activity, and model/runtime status.
+`/system` — users, updates, backup, certificates, diagnostics.
 
-### /infrastructure
-Security Onion, sensors, endpoint agents, Kali workers, routers/firewalls, integrations, queues, storage, versions, and health.
+Detailed contracts: [page-specifications.md](page-specifications.md).
 
-### /automations
-Continuous `WHEN → IF → THEN → VERIFY` rules. Automation is deterministic by default; model classification is an explicit step when used.
-
-### /policies
-Authorization scope, operating modes, action classes, approvals, worker permissions, target allowlists, retention, and autonomy.
-
-### /system
-Product configuration, users/roles, updates, diagnostics, storage, backup/restore, and audit.
-
-## Elyandra contextual contract
-
-Each page can publish a typed context envelope:
+## Elyandra UI context
 
 ```text
-workspace
-site
+workspace_id
+site_id
 route
 time_window
-selected_entities[]
-selected_relationships[]
+selected_entity_ids[]
+selected_relationship_ids[]
 investigation_id?
 operation_id?
 mode
 ```
 
-The agent never receives implicit authority from UI selection.
+Context does not grant authority.
 
-## Universe interaction model
+## Universe
 
-- Click node: select asset/endpoint.
-- Click edge: select relationship/flow aggregate.
-- Double-click/drill: narrower topology.
-- Scroll/zoom: graph navigation.
-- Timeline scrub: historical projection.
-- “Evidence”: opens exact supporting records.
-- “Investigate”: creates/proposes Investigation/Play with selected context.
-- “Ask Elyandra”: binds context but does not execute.
+Views:
+`Live | External | Connections | Geographic | Timeline | Replay`.
+
+Inspector:
+`Overview | Connections | Processes | Services | Findings | History | Evidence`.
+
+Initial renderer: Sigma.js + Graphology.
+
+### Projection density
+Server projection targets a default interactive budget of roughly 800 visible nodes / 2,500 edges. Above the budget, Ely clusters/aggregates and expands on demand rather than dumping the whole graph into the browser.
+
+The budget is configurable and later tuned by performance/UX tests.
+
+### Geographic privacy
+Geographic view is disabled for precise private-site positioning.
+
+It may display coarse external destination GeoIP/provider geography. Ely does not plot the operator's home/site at a precise public-map coordinate by default.
+
+## Accessibility
+
+- WCAG-conscious contrast;
+- keyboard navigation for all core actions;
+- non-color status indicators;
+- `prefers-reduced-motion` disables animated flow motion/transitions;
+- graph has list/table alternative for critical information;
+- approval cannot rely on hover-only content.
 
 ## Responsive policy
 
-Desktop is the full operational surface. Tablet supports investigation/triage. Mobile is primarily awareness, approval, and incident response; dense graph authoring is not a mobile requirement.
+Desktop: complete operational environment.
 
-## Open questions
+Tablet: full triage/investigation/approval with simplified Universe.
 
-- Final visual language/logo assets.
-- Geographic view privacy defaults.
-- Accessibility motion-reduction behavior for live flows.
-- Maximum graph density before forced aggregation.
+Mobile: awareness, investigation status, evidence summaries, approvals/emergency response. Dense graph manipulation is not required.
 
 [← Play Engine](../architecture/play-engine.md) · [Next: Upstream Adoption →](../research/upstream-adoption.md)
