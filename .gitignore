@@ -1,0 +1,111 @@
+# Ely Security — repository hygiene
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.cer
+*.jks
+*.keystore
+secrets/
+vault/
+credentials/
+**/credentials.json
+
+# Security evidence and captures — never commit raw operational data
+*.pcap
+*.pcapng
+*.cap
+*.evtx
+*.etl
+*.dmp
+evidence/
+captures/
+artifacts/
+forensics/
+telemetry/
+zeek-logs/
+suricata-logs/
+arkime-data/
+security-onion-data/
+opensearch-data/
+elasticsearch-data/
+
+# Runtime state / databases
+*.db
+*.db-*
+*.sqlite
+*.sqlite3
+data/
+state/
+runtime/
+logs/
+*.log
+*.pid
+
+# Node / TypeScript / frontend
+node_modules/
+.pnpm-store/
+.yarn/
+.npm/
+dist/
+build/
+.next/
+.nuxt/
+.svelte-kit/
+coverage/
+*.tsbuildinfo
+.vite/
+
+# Python / security tooling
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+env/
+pip-wheel-metadata/
+
+# Go / Rust
+bin/
+target/
+*.test
+coverage.out
+
+# IDE / agent-local state
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+.opencode/
+.cursor/
+.codex/
+
+# Containers / local orchestration
+docker-compose.override.yml
+compose.override.yml
+*.local.yml
+
+# Generated keys, certificates, reports and exports
+certs/
+keys/
+reports/generated/
+exports/
+tmp/
+temp/
+.cache/
+
+# OS/package artifacts
+*.deb
+*.rpm
+*.msi
+*.dmg
+*.iso
