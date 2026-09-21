@@ -1,139 +1,152 @@
 # Play Engine
 
-**Status:** Review  
-**Version:** 0.1
+**Status:** Accepted  
+**Version:** 1.0
 
 [← Security Graph](security-graph.md) · [Next: Page Stack →](../product/page-stack.md)
 
 ## Definition
 
-A **Play** is a versioned, typed, stateful security workflow. A shell script may be one implementation detail of a controlled step, but a Play is not a script.
+A Play is a versioned, typed, durable workflow:
 
 ```text
-Trigger → Scope → Observe → Gather Evidence → Evaluate
-        → Branch → Propose/Act → Verify → Record → Close/Rollback
+Trigger → Resolve Scope → Observe → Gather Evidence → Evaluate
+        → Branch → Request/Act → Verify → Record → Close/Rollback
 ```
 
-## Play classes
+Scripts may exist behind registered ToolAdapters but are not the workflow abstraction.
 
-- **Observe** — passive collection/query.
-- **Investigate** — non-destructive diagnostics.
-- **Defend** — containment/remediation under policy.
-- **Assess** — active testing of explicitly authorized targets.
+## Runtime
 
-## Required Play definition fields
+Play Engine is a Go module in Ely Core.
 
-```text
-play_id
-version
-name
-class
-purpose
-required_mode
-input_schema
-scope_constraints
-preconditions
-steps
-policy_requirements
-timeouts
-failure_policy
-verification
-rollback?
-evidence_outputs
-risk_class
-owner
-```
+Durable state is PostgreSQL. NATS carries wakeups/events/results; NATS is not the workflow source of truth.
+
+On Core restart, runs resume from persisted state.
+
+## Classes
+
+- OBSERVE;
+- INVESTIGATE;
+- DEFEND;
+- ASSESS.
+
+## Definition
+
+A Play records:
+- play_id/version/hash/publisher;
+- purpose/class/required mode;
+- typed inputs;
+- scope constraints;
+- preconditions;
+- steps/branches;
+- action risk;
+- policy requirements;
+- timeouts;
+- failure/retry semantics;
+- verification;
+- rollback/compensation;
+- expected evidence.
 
 ## Step types
 
-- query graph;
-- query evidence;
-- invoke sensor/search integration;
-- request Elyandra classification;
+- graph/evidence query;
+- source/provider query;
 - deterministic condition;
+- Elyandra classification;
 - branch;
-- request approval;
-- invoke typed worker action;
-- wait/observe;
+- approval request;
+- typed worker action;
+- wait for observation;
 - verify;
-- emit finding;
-- update investigation;
+- create/update Finding/Investigation;
 - rollback/compensate.
 
-## Safety model
+## Policy
 
-The Play Engine does not decide whether a side effect is authorized. It constructs an ActionRequest and asks the Policy Engine.
+Before every side effect, the Play Engine emits an ActionRequest.
 
-Policy input includes:
-- actor/service identity;
-- workspace/site;
-- active operating mode;
-- Play and version;
-- target set;
-- requested action;
-- action risk class;
-- current approvals;
-- time/expiry;
-- relevant policy facts.
-
-The Policy Engine returns:
+Policy returns:
 `PERMIT | DENY | REQUIRE_APPROVAL`.
 
-A permit yields a short-lived ExecutionGrant. Workers cannot accept arbitrary “because Elyandra said so” execution.
+A permit yields an exact short-lived ExecutionGrant through Execution Gateway.
+
+## Approval semantics
+
+Approvals bind:
+- Play/action;
+- resolved target set;
+- parameters/constraints;
+- approver;
+- expiration;
+- allowed use count.
+
+Default interactive approval is one-shot and short-lived. V1 UI defaults to 10 minutes for R3–R5 requests; policy may shorten it. Longer reusable approvals require explicit policy, not a UI checkbox.
+
+## Retry semantics
+
+### Read/idempotent
+May retry with bounded exponential backoff.
+
+### State-changing with confirmed failure-before-effect
+May retry according to adapter contract.
+
+### State-changing with unknown outcome
+Never blindly retry. State becomes `VERIFY_REQUIRED`; a verification step determines target state before continuation.
 
 ## Dynamic Plays
 
-Elyandra may propose a new Play or a temporary parameterized plan from approved primitives. Proposed Plays are data, not executable authority. They must:
-1. validate against the Play schema;
-2. use registered primitives;
-3. resolve explicit scope;
-4. pass policy;
-5. preserve a version/hash;
-6. be visible to the operator before consequential execution when policy requires it.
+Elyandra may propose a temporary Play using registered primitives.
 
-## Initial Play library
+Before execution:
+- schema validation;
+- scope resolution;
+- version/hash assigned;
+- policy evaluation;
+- operator preview when required.
 
-### Unknown Device Investigation
-Correlate identity evidence, history, DHCP/network observations, passive behavior, known inventory, and optional approved non-destructive discovery.
+Text cannot introduce a new executable primitive.
 
-### Suspicious Outbound Connection
-Establish relationship history, destination context, initiating process when available, IDS evidence, baseline, and evidence for/against suspiciousness.
+## Publishing/signing
 
-### Unexpected Service
-Verify observation, determine owning asset/process, compare history, inspect exposure and policy, create finding if justified.
+### Built-in Plays
+Versioned in source and covered by signed Ely release manifest.
 
-### Endpoint Triage
-Collect bounded host/network evidence without remediation.
+### Local Plays
+Stored with workspace publisher identity, content hash, revision history, and audit. No public Play marketplace in V1.
 
-### Exposure Assessment
-Against an explicitly authorized asset, enumerate approved exposure information and produce findings/evidence.
+A modified Play receives a new version/hash.
 
-### Contain Endpoint
-Defensive, high-impact Play requiring explicit policy/approval; verifies containment and provides rollback path.
+## Initial Plays
 
-## Idempotency and recovery
+- Unknown Device Investigation
+- Suspicious Outbound Connection
+- Unexpected Service
+- Endpoint Triage
+- Exposure Assessment
+- Contain Endpoint
 
-Every step has a stable execution key. On restart, the engine must distinguish:
-- never started;
-- started/unknown result;
-- completed;
-- failed;
-- compensated.
+## Run state
 
-State-changing steps require explicit idempotency/verification semantics.
+`QUEUED | RUNNING | WAITING_APPROVAL | WAITING_EVIDENCE | VERIFY_REQUIRED | VERIFYING | SUCCEEDED | FAILED | CANCELLED | ROLLED_BACK`.
 
-## Operations UX
+Each step persists:
+- state;
+- attempt;
+- inputs hash;
+- policy decision;
+- worker/tool;
+- evidence;
+- timing;
+- output/result.
 
-A running Play is observable:
-`QUEUED → RUNNING → WAITING_APPROVAL → VERIFYING → SUCCEEDED|FAILED|CANCELLED|ROLLED_BACK`.
+## Acceptance tests
 
-The operator sees each step, tool, policy decision, evidence output, duration, and Elyandra rationale.
-
-## Open questions
-
-- Workflow runtime implementation.
-- Human approval expiry semantics.
-- Distributed worker retry rules.
-- Play signing/publishing model.
+- Core restart resumes correctly;
+- same idempotency key cannot duplicate containment;
+- unknown side-effect result requires verification;
+- Play edit changes hash/version;
+- dynamic Play cannot invent raw shell tool;
+- approval for Asset A cannot be reused for Asset B.
 
 [← Security Graph](security-graph.md) · [Next: Page Stack →](../product/page-stack.md)
