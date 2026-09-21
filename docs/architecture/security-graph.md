@@ -1,23 +1,33 @@
 # Security Graph
 
-**Status:** Review  
-**Version:** 0.1
+**Status:** Accepted  
+**Version:** 1.0
 
 [← Threat Model](threat-model.md) · [Next: Play Engine →](play-engine.md)
 
 ## Purpose
 
-The Security Graph is Ely Security's canonical temporal representation of the environment. It is the source used by Universe, investigations, Elyandra context, and scope-aware Plays.
+The Security Graph is Ely's canonical temporal representation of the environment. Universe, investigations, Elyandra context, detection/correlation, and scope-aware Plays consume it.
 
-It is **not** a replacement for raw evidence stores.
+It is not a raw evidence store.
 
-## Graph node classes
+## Storage decision
+
+PostgreSQL is the authoritative V1 graph store (ADR-0005).
+
+Ely uses relational temporal node/edge tables, observations, validity intervals, indexes, recursive CTEs, and materialized current-state projections.
+
+OpenSearch may project graph/event data for search. Browser graph libraries render server projections. Neither is canonical.
+
+A specialized graph database may be introduced later only as a rebuildable projection if measured traversal workloads require it.
+
+## Node classes
 
 - Workspace, Site, Network, Zone
 - Asset, Interface, Identity
 - ExternalEndpoint, Domain, Service
-- Process (when endpoint evidence supports it)
-- Flow/Session reference
+- Process
+- Flow/SessionReference
 - Alert, Finding
 - Investigation
 - Evidence/Artifact reference
@@ -41,67 +51,67 @@ Operation -PRODUCED→ Evidence
 
 ## Temporal semantics
 
-The graph must answer both:
-- “What is true/observed now?”
-- “What did the graph look like at T?”
+Graph history is never overwritten away.
 
-Do not mutate history away. Store observations/events and derive materialized current state.
+The system stores event/observation history and derives current projections.
 
-Universe time controls:
+Universe windows:
 `LIVE | 5M | 1H | 6H | 24H | 7D | REPLAY`.
+
+Temporal fields use source observation time plus ingest time. Identity/relationship validity is explicit.
 
 ## Provenance
 
-Every graph assertion must resolve to:
-- source observation(s);
+Every material assertion resolves to:
+- source observations;
 - deterministic derivation; or
 - explicitly labeled hypothesis/determination.
 
-Graph edges may have confidence, but confidence cannot replace provenance.
+Confidence never replaces provenance.
 
-## Universe projection
+## Projection service
 
-The Universe does not render raw graph density. A projection service produces view-specific graphs:
+Universe receives bounded server-side projections:
 - site topology;
-- selected asset neighborhood;
+- selected-asset neighborhood;
 - external communications;
-- suspicious/new relationships;
+- new/suspicious relationships;
 - investigation scope;
-- historical replay.
+- replay at T/during window.
 
-Aggregation rules must be explicit. Example: thousands of packets may become one flow edge; multiple flows may become a relationship edge with counts/volume.
+Projection rules specify aggregation. Packet count does not become browser nodes.
 
 ## Baseline/change model
 
-Baseline is descriptive history, not “safe.” The graph tracks:
-- first seen;
-- last seen;
+Track:
+- first/last seen;
 - recurrence;
-- typical time-of-day;
-- typical destinations/services;
+- time-of-day distribution;
+- destinations/services;
 - volume ranges;
-- identity stability.
+- identity stability;
+- source coverage.
 
-A baseline deviation creates an observation/finding candidate; it does not independently prove maliciousness.
+Baseline means historically typical, not safe.
 
-## Storage decision deferred
+## Cross-site identity
 
-We intentionally do not choose Neo4j, PostgreSQL, OpenSearch, or another graph store yet. The logical graph contract comes first. Benchmark requirements include temporal queries, neighborhood traversal, high-rate edge updates, retention, replay, and local deployment footprint.
+Assets remain site-scoped unless strong global identity (enrolled cryptographic Node identity or explicit operator association) supports a cross-site relationship.
+
+No IP/MAC-only global merge.
+
+## Caching
+
+Current-state and common neighborhood projections may be cached, but cache entries are disposable and keyed by graph/policy/time-version.
 
 ## Acceptance criteria
 
-- An asset's external relationships can be reconstructed for a time window.
-- Each visible relationship links to evidence.
-- Replay produces deterministic state from the same event set.
-- Identity uncertainty is representable.
-- Deleting/retiring an asset does not erase historical evidence.
-- UI projection cannot silently alter canonical graph state.
-
-## Open questions
-
-- Event-sourced vs bitemporal relational implementation.
-- Hot/cold relationship retention.
-- Graph projection caching.
-- Cross-site identity reconciliation.
+- reconstruct external relationships for a window;
+- every visible material edge links to evidence;
+- deterministic replay produces equivalent graph;
+- uncertainty is representable;
+- retire/delete UI action never erases history;
+- browser projection cannot mutate canonical state;
+- deleting OpenSearch/Sigma client state does not affect truth.
 
 [← Threat Model](threat-model.md) · [Next: Play Engine →](play-engine.md)
