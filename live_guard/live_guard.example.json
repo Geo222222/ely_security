@@ -1,0 +1,9 @@
+{
+  "dashboard": {"bind": "127.0.0.1", "port": 8787},
+  "db_path": "./data/live_guard.db",
+  "suricata_eve": "/var/log/suricata/eve.json",
+  "zeek_dir": "/opt/zeek/logs/current",
+  "trusted_cidrs": ["192.168.50.0/24"],
+  "known_assets": {"192.168.50.1": "Gateway"},
+  "source_stale_seconds": 30
+}
